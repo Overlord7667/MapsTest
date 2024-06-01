@@ -53,7 +53,7 @@ import com.yandex.runtime.image.ImageProvider
 import com.yandex.runtime.network.NetworkError
 import com.yandex.runtime.network.RemoteError
 
-class MainActivity : AppCompatActivity(), UserLocationObjectListener, Session.SearchListener, CameraListener , DrivingRouteListener{
+class MainActivity : AppCompatActivity(), UserLocationObjectListener, Session.SearchListener, CameraListener , DrivingRouteListener {
 
     lateinit var mapView: MapView
     lateinit var trafficBtn: Button
@@ -62,22 +62,16 @@ class MainActivity : AppCompatActivity(), UserLocationObjectListener, Session.Se
     lateinit var searchManager: SearchManager
     lateinit var searchSession: Session
     private var isUserInteractingWithMap = false
+    private var userLocation: Point? = null
 
-//Установка маршрута из пункта А в пункт Б
-    private val ROUTE_START_LOCATION = Point(47.227853, 39.718281)
-    private val ROUTE_END_LOCATION = Point(47.216374, 39.794267)
+    //Точка назначения (Б)
+    private val ROUTE_END_LOCATION = Point(56.833933, 60.635647)
 
-    //Не реализовано
-    private val SCREEN_CENTER = Point(
-        (ROUTE_START_LOCATION.latitude + ROUTE_END_LOCATION.latitude)/2,
-        (ROUTE_START_LOCATION.longitude + ROUTE_END_LOCATION.longitude)/2
-    )
+    private var mapObjects: MapObjectCollection? = null
+    private var drivingRouter: DrivingRouter? = null
+    private var drivingSession: DrivingSession? = null
 
-    private var mapObjects:MapObjectCollection? = null
-    private var drivingRouter:DrivingRouter? = null
-    private var drivingSession:DrivingSession? = null
-
-    private fun sumbitQuery(query: String) {
+    private fun submitQuery(query: String) {
         searchSession = searchManager.submit(query, VisibleRegionUtils.toPolygon(mapView.map.visibleRegion),
             SearchOptions(), this
         )
@@ -98,6 +92,7 @@ class MainActivity : AppCompatActivity(), UserLocationObjectListener, Session.Se
         searchEditText = findViewById(R.id.searchID)
 
         mapView = findViewById(R.id.mapView)
+        //Отправная точка (А)
         mapView.map.move(CameraPosition(Point(55.787134, 37.464118), 11.0f, 0.0f, 0.0f),
             Animation(Animation.Type.SMOOTH, 300f), null)
         val mapKit: MapKit = MapKitFactory.getInstance()
@@ -120,39 +115,23 @@ class MainActivity : AppCompatActivity(), UserLocationObjectListener, Session.Se
         }
         locationMapKit = mapKit.createUserLocationLayer(mapView.mapWindow)
 
-        //Включение отображает месторасположение но цепляет камеру и не даёт её сдвинуть
-        locationMapKit.isVisible = false
-
-
+        locationMapKit.isVisible = true
         locationMapKit.setObjectListener(this)
+
         SearchFactory.initialize(this)
 
         searchManager = SearchFactory.getInstance().createSearchManager(SearchManagerType.COMBINED)
         mapView.map.addCameraListener(this)
         searchEditText.setOnEditorActionListener { v, actionId, event ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                sumbitQuery(searchEditText.text.toString())
+                submitQuery(searchEditText.text.toString())
             }
             false
         }
 
         drivingRouter = DirectionsFactory.getInstance().createDrivingRouter()
         mapObjects = mapView.map.mapObjects.addCollection()
-
-        sumbitRequest()
-
-
-//        findViewById<Button>(R.id.my_location_button).setOnClickListener {
-//            moveToUserLocation()
-//        }
     }
-
-//    private fun moveToUserLocation() {
-//        locationMapKit.cameraPosition()?.let {
-//            mapView.map.move(it,
-//                Animation(Animation.Type.SMOOTH, 300f), null)
-//        }
-//    }
 
     private fun requestLocationPermission() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
@@ -160,14 +139,13 @@ class MainActivity : AppCompatActivity(), UserLocationObjectListener, Session.Se
 
             ActivityCompat.requestPermissions(this, arrayOf(
                 Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
-                REQUEST_LOCATION_PERMISSION_CODE) // Здесь указываем код запроса разрешения
+                REQUEST_LOCATION_PERMISSION_CODE)
         }
     }
 
     companion object {
         private const val REQUEST_LOCATION_PERMISSION_CODE = 1
     }
-
 
     override fun onStop() {
         mapView.onStop()
@@ -182,36 +160,31 @@ class MainActivity : AppCompatActivity(), UserLocationObjectListener, Session.Se
     }
 
     override fun onObjectAdded(userLocationView: UserLocationView) {
-        locationMapKit.setAnchor(
-            PointF((mapView.width * 0.5).toFloat(), (mapView.height * 0.5).toFloat()),
-            PointF((mapView.width * 0.5).toFloat(), (mapView.height * 0.83).toFloat())
-        )
-        userLocationView.arrow.setIcon(ImageProvider.fromResource(this, R.drawable.navigation))
-        val picIcon = userLocationView.pin.useCompositeIcon()
-        picIcon.setIcon("icon", ImageProvider.fromResource(
-            this, R.drawable.my_location), IconStyle().setAnchor(PointF(0f, 0f))
-            .setRotationType(RotationType.NO_ROTATION).setZIndex(0f).setScale(1f)
-        )
-        picIcon.setIcon("icon", ImageProvider.fromResource(
-            this, R.drawable.my_location), IconStyle().setAnchor(PointF(0.5f, 0.5f))
-            .setRotationType(RotationType.ROTATE).setZIndex(1f).setScale(0.5f)
-        )
-        userLocationView.accuracyCircle.fillColor = Color.BLUE and -0x66000001
+        //При раскоментировании закрепляет камеру на пользователе
+//        locationMapKit.setAnchor(
+//            PointF((mapView.width * 0.5).toFloat(), (mapView.height * 0.5).toFloat()),
+//            PointF((mapView.width * 0.5).toFloat(), (mapView.height * 0.83).toFloat())
+//        )
     }
 
-    override fun onObjectRemoved(p0: UserLocationView) {}
+    override fun onObjectRemoved(view: UserLocationView) {}
 
-    override fun onObjectUpdated(p0: UserLocationView, p1: ObjectEvent) {}
-
-    //Отключено
-    override fun onSearchResponse(response: Response) {
-        val mapObjects: MapObjectCollection = mapView.map.mapObjects
-        for (searchResult in response.collection.children) {
-            val resultLocation = searchResult.obj!!.geometry[0].point!!
-            if (response != null) {
-//                mapObjects.addPlacemark(resultLocation, ImageProvider.fromResource(this, R.drawable.my_location))
-            }
+    override fun onObjectUpdated(view: UserLocationView, event: ObjectEvent) {
+        userLocation = view.arrow.geometry
+        if (userLocation != null) {
+            submitRequest(userLocation!!)
         }
+    }
+
+    //Поиск не реализован
+    override fun onSearchResponse(response: Response) {
+//        val mapObjects: MapObjectCollection = mapView.map.mapObjects
+//        for (searchResult in response.collection.children) {
+//            val resultLocation = searchResult.obj!!.geometry[0].point!!
+//            if (response != null) {
+////                mapObjects.addPlacemark(resultLocation, ImageProvider.fromResource(this, R.drawable.my_location))
+//            }
+//        }
     }
 
     override fun onSearchError(error: Error) {
@@ -231,7 +204,7 @@ class MainActivity : AppCompatActivity(), UserLocationObjectListener, Session.Se
         finished: Boolean
     ) {
         if (finished && !isUserInteractingWithMap) {
-            sumbitQuery(searchEditText.text.toString())
+            submitQuery(searchEditText.text.toString())
         }
     }
 
@@ -243,24 +216,25 @@ class MainActivity : AppCompatActivity(), UserLocationObjectListener, Session.Se
         return super.onTouchEvent(event)
     }
 
-    override fun onDrivingRoutes(p0: MutableList<DrivingRoute>) {
-        for (route in p0){
+    override fun onDrivingRoutes(routes: MutableList<DrivingRoute>) {
+        for (route in routes) {
             mapObjects!!.addPolyline(route.geometry)
         }
     }
 
-    override fun onDrivingRoutesError(p0: Error) {
-        var  errorManager = "Неизвестная ошибка"
-        Toast.makeText(this,errorManager, Toast.LENGTH_SHORT)
+    override fun onDrivingRoutesError(error: Error) {
+        val errorMessage = "Неизвестная ошибка"
+        Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show()
     }
 
-    private fun sumbitRequest() {
+    private fun submitRequest(startLocation: Point) {
         val drivingOptions = DrivingOptions()
         val vehicleOptions = VehicleOptions()
         val requestPoints: ArrayList<RequestPoint> = ArrayList()
-        requestPoints.add(RequestPoint(ROUTE_START_LOCATION, RequestPointType.WAYPOINT, null))
+        requestPoints.add(RequestPoint(startLocation, RequestPointType.WAYPOINT, null))
         requestPoints.add(RequestPoint(ROUTE_END_LOCATION, RequestPointType.WAYPOINT, null))
         drivingSession = drivingRouter!!.requestRoutes(requestPoints, drivingOptions, vehicleOptions, this)
     }
 }
+
 

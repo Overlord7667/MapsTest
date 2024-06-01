@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "140301751028",
+    "project_id": "yandexmapkit-50add",
+    "storage_bucket": "yandexmapkit-50add.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:140301751028:android:8e33019232c558819cc4a1",
+        "android_client_info": {
+          "package_name": "com.betelgeuse.corp.mapstest"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBeqiHQR5wLvbyDbw4nuwRtNQrV1FG8hz8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

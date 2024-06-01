@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.betelgeuse.corp.mapstest" />
+                  <option name="mobileSdkAppId" value="1:140301751028:android:8e33019232c558819cc4a1" />
+                  <option name="projectId" value="yandexmapkit-50add" />
+                  <option name="projectNumber" value="140301751028" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />
